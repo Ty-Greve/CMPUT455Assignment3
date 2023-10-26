@@ -67,7 +67,10 @@ class GtpConnection:
             "gogui-rules_board": self.gogui_rules_board_cmd,
             "gogui-analyze_commands": self.gogui_analyze_cmd,
             "timelimit": self.timelimit_cmd,
-            "solve": self.solve_cmd
+            "solve": self.solve_cmd,
+            # New Added functions for A3
+            "policy": self.policy_cmd,
+            "policy_moves": self.policy_moves_cmd
         }
 
         # argmap is used for argument checking
@@ -229,8 +232,33 @@ class GtpConnection:
             gtp_moves.append(format_point(coords))
         sorted_moves = " ".join(sorted(gtp_moves))
         self.respond(sorted_moves)
-
     """
+    ==========================================================================
+    Assignment 3
+    ==========================================================================
+    """
+    def policy_cmd(self, args: List[str]) -> None:
+        '''
+        Default self.policy = random
+        This is a getter setter for self.policy
+        '''
+        self.policy = 
+        pass
+
+    def policy_moves_cmd():
+        """
+        print out set of moves for the current player given the simulation policy
+        and current position.
+        GTP Output:
+        Movetype Movelist
+        # Movetype = {Win, BlockWin, OpenFour, Capture, Random}
+        # Movelist = ab sorted list of moves (same as gogui-rules_legal_moves)
+        """
+        pass
+    """
+
+    # Genmove needs to be changed using active simulation policy |X|
+
     ==========================================================================
     Assignment 2 - game-specific commands start here
     ==========================================================================
