@@ -21,7 +21,7 @@ class FlatMonteCarloPlayer(object):
         return "Flat Monte Carlo Player ({0} sim.)".format(self.numSimulations)
 
     def genmove(self, state): #this should not be state, all instancesneed to be change
-        assert not state.endOfGame()
+        assert not state.end_of_game()
         moves = state.legalMoves()
         numMoves = len(moves)
         score = [0] * numMoves

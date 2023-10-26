@@ -454,3 +454,17 @@ def color_to_int(c: str) -> int:
     """convert character to the appropriate integer code"""
     color_to_int = {"b": BLACK, "w": WHITE, "e": EMPTY, "BORDER": BORDER}
     return color_to_int[c]
+
+def legal_moves_cmd(self, args: List[str]) -> None:
+        """
+        List legal moves for color args[0] in {'b','w'}
+        """
+        board_color: str = args[0].lower()
+        color: GO_COLOR = color_to_int(board_color)
+        moves: List[GO_POINT] = GoBoardUtil.generate_legal_moves(self.board, color)
+        gtp_moves: List[str] = []
+        for move in moves:
+            coords: Tuple[int, int] = point_to_coord(move, self.board.size)
+            gtp_moves.append(format_point(coords))
+        sorted_moves = " ".join(sorted(gtp_moves))
+        self.respond(sorted_moves)
