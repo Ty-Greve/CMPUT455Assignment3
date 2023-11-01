@@ -44,6 +44,9 @@ class GtpConnection:
         self._debug_mode: bool = debug_mode
         self.go_engine = go_engine
         self.board: GoBoard = board
+
+        self.policy = "random"
+
         self.commands: Dict[str, Callable[[List[str]], None]] = {
             "protocol_version": self.protocol_version_cmd,
             "quit": self.quit_cmd,
@@ -241,9 +244,15 @@ class GtpConnection:
         '''
         Default self.policy = random
         This is a getter setter for self.policy
+        "random" or "rule_based"
         '''
-        self.policy = 
-        pass
+        try:
+            p = args[0].lower()
+            assert(p == "random" or "rule_based")
+            self.policy = p
+            
+        except:
+            self.respond("incorrect policy type: " + str(args[0]) + " type 'random' or 'rule_based'")
 
     def policy_moves_cmd():
         """
