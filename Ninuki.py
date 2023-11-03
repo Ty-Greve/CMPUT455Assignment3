@@ -20,9 +20,11 @@ class FlatMonteCarloPlayer():
     def name(self):
         return "Flat Monte Carlo Player ({0} sim.)".format(self.numSimulations)
 
-    def genmove(self, ) -> None: 
-        assert not self.end_of_game() #in board
-        moves = state.legalMoves() #legal_moves_cmd in gtp_connection
+    #player runs N=10 simulations for each legal move
+    
+    def genmove(self, state: GoBoard) -> None: 
+        assert not state.end_of_game() #in board
+        moves = state.get_empty_points() #legal_moves_cmd in gtp_connection
         numMoves = len(moves)
         score = [0] * numMoves
         for i in range(numMoves):
@@ -30,12 +32,12 @@ class FlatMonteCarloPlayer():
             score[i] = self.simulate(state, move)
         bestIndex = score.index(max(score))
         best = moves[bestIndex]
-        assert best in state.legalMoves()
+        assert best in state.get_empty_points()
         return best
 
-    def simulate(self, state, move):
+    def simulate(self, state: GoBoard, move):
         stats = [0] * 3
-        state.play(move)
+        state.play_move(move)
         moveNr = state.moveNumber()
         for _ in range(self.numSimulations):
             winner, _ = state.simulate() #not initialized 
