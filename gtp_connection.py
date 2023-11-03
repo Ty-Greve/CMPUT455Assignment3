@@ -28,6 +28,7 @@ from board_base import (
 from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
+from Ninuki import FlatMonteCarloPlayer
 
 class GtpConnection:
     def __init__(self, go_engine: GoEngine, board: GoBoard, debug_mode: bool = False) -> None:
@@ -47,6 +48,7 @@ class GtpConnection:
 
         self.policy = "random"
 
+        self.player = FlatMonteCarloPlayer(10)
         self.commands: Dict[str, Callable[[List[str]], None]] = {
             "protocol_version": self.protocol_version_cmd,
             "quit": self.quit_cmd,

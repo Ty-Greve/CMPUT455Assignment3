@@ -11,7 +11,11 @@ from board_base import DEFAULT_SIZE, GO_POINT, GO_COLOR
 from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
-#from game_basics import EMPTY, BLACK, WHITE
+from board_base import (
+    BLACK,
+    WHITE,
+    EMPTY,)
+# from game_basics import EMPTY, BLACK, WHITE
 
 class FlatMonteCarloPlayer():
     def __init__(self, numSimulations):
