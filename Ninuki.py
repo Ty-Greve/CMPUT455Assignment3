@@ -16,7 +16,6 @@ from engine import GoEngine
 class FlatMonteCarloPlayer():
     def __init__(self, numSimulations):
         self.numSimulations = numSimulations
-        s
 
     def name(self):
         return "Flat Monte Carlo Player ({0} sim.)".format(self.numSimulations)
