@@ -46,9 +46,9 @@ class GtpConnection:
         self.go_engine = go_engine
         self.board: GoBoard = board
 
+        self.player = FlatMonteCarloPlayer(10)
         self.policy = "random"
 
-        self.player = FlatMonteCarloPlayer(10)
         self.commands: Dict[str, Callable[[List[str]], None]] = {
             "protocol_version": self.protocol_version_cmd,
             "quit": self.quit_cmd,
