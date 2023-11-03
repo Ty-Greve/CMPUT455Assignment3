@@ -394,6 +394,30 @@ class GoBoard(object):
                 return prev
         return EMPTY
 
+    def undo_move(self) -> None:
+        # use change stack implementation with changes for captures
+        #### !!!!!!! MODIFY PLAY MOVE FOR TO PUSH MOVES ONTO STACK
+        # adjust the last and second last move variables?
+
+        last_moves = self.change_stack.pop()
+
+        # Handle the piece undone
+        color, point = last_moves[0:2] # get first two values from movelist
+        self.board[point] = EMPTY      # Remove the last piece played
+
+        # Handle undone Captures
+        Ocolor = opponent(color) # Get opponent color
+        for capture in last_moves[2:]: # for each capture in the movelist
+            self.board[capture] = Ocolor
+            if color == BLACK:
+                self.black_captures -= 1
+            elif color == WHITE:
+                self.white_captures -= 1
+
+        self.current_player = opponent(self.current_player) # Change the current player back
+
+        return None
+
     def end_of_game(self) -> bool:
         if self.black_captures>=10 or self.white_captures>=10:
             return True

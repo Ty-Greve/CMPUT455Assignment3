@@ -13,16 +13,17 @@ from board_util import GoBoardUtil
 from engine import GoEngine
 #from game_basics import EMPTY, BLACK, WHITE
 
-class FlatMonteCarloPlayer(object):
+class FlatMonteCarloPlayer():
     def __init__(self, numSimulations):
         self.numSimulations = numSimulations
+        s
 
     def name(self):
         return "Flat Monte Carlo Player ({0} sim.)".format(self.numSimulations)
 
-    def genmove(self, state): #this should not be state, all instancesneed to be change
-        assert not state.end_of_game()
-        moves = state.legalMoves()
+    def genmove(self, ) -> None: 
+        assert not self.end_of_game() #in board
+        moves = state.legalMoves() #legal_moves_cmd in gtp_connection
         numMoves = len(moves)
         score = [0] * numMoves
         for i in range(numMoves):
@@ -38,12 +39,12 @@ class FlatMonteCarloPlayer(object):
         state.play(move)
         moveNr = state.moveNumber()
         for _ in range(self.numSimulations):
-            winner, _ = state.simulate()
+            winner, _ = state.simulate() #not initialized 
             stats[winner] += 1
             state.resetToMoveNumber(moveNr)
         assert sum(stats) == self.numSimulations
         assert moveNr == state.moveNumber()
-        state.undoMove()
+        state.undoMove() #in board 
         eval = (stats[BLACK] + 0.5 * stats[EMPTY]) / self.numSimulations
         if state.toPlay == WHITE:
             eval = 1 - eval
