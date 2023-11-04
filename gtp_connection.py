@@ -7,6 +7,23 @@ Written by Cmput 455 TA and Martin Mueller.
 Parts of this code were originally based on the gtp module 
 in the Deep-Go project by Isaac Henrion and Amos Storkey 
 at the University of Edinburgh.
+
+--- A3 ---
+V1
+Added assignment 3 section
+import FlatMonteCarloPlayer form ninuki
+initialize self.player as FlatMonteCarloPlayer(10)
+add self.policy default to 'random'
+added functions to be called from gtp text prompt:
+-policy_cmd()
+-policy_move_cmd()
+implemented policy_cmd()
+moved FlatMonteCarloPlayer to bottom of gtp_connection
+policy_move_cmd() Done
+change genmove() Done
+FlatMonteCarloPlayer() changed and working for random policy
+Random Policy working
+---
 """
 import traceback
 import numpy as np
@@ -45,6 +62,7 @@ class GtpConnection:
         self.go_engine = go_engine
         self.board: GoBoard = board
 
+        self.player = FlatMonteCarloPlayer(10)
         self.policy = "random"
 
         self.commands: Dict[str, Callable[[List[str]], None]] = {
@@ -254,7 +272,7 @@ class GtpConnection:
         except:
             self.respond("incorrect policy type: " + str(args[0]) + " type 'random' or 'rule_based'")
 
-    def policy_moves_cmd():
+    def policy_moves_cmd(self, args: List[str]) -> None:
         """
         print out set of moves for the current player given the simulation policy
         and current position.
@@ -263,7 +281,17 @@ class GtpConnection:
         # Movetype = {Win, BlockWin, OpenFour, Capture, Random}
         # Movelist = ab sorted list of moves (same as gogui-rules_legal_moves)
         """
-        pass
+        _ = args
+        if self.policy == "random":
+            moves = self.board.get_empty_points()
+            out = []
+            for i in range(len(moves)):
+                out.append((format_point(point_to_coord(moves[i], self.board.size))).lower())
+            out.sort()
+            self.respond("Random "+ " ".join(str(e) for e in out))
+        else:
+            self.respond("Not Yet Implemented")
+        return None
     """
 
     # Genmove needs to be changed using active simulation policy |X|
@@ -397,6 +425,7 @@ class GtpConnection:
     def genmove_cmd(self, args: List[str]) -> None:
         """ 
         Modify this function for Assignment 2.
+        # Make new changes for A3
         """
         board_color = args[0].lower()
         color = color_to_int(board_color)
@@ -411,9 +440,9 @@ class GtpConnection:
         if legal_moves.size == 0:
             self.respond("pass")
             return
-        rng = np.random.default_rng()
-        choice = rng.choice(len(legal_moves))
-        move = legal_moves[choice]
+        #rng = np.random.default_rng()
+        #choice = rng.choice(len(legal_moves))
+        move = self.player.genmove(self.board)
         move_coord = point_to_coord(move, self.board.size)
         move_as_string = format_point(move_coord)
         self.play_cmd([board_color, move_as_string, 'print_move'])
@@ -491,3 +520,57 @@ def color_to_int(c: str) -> int:
     """convert character to the appropriate integer code"""
     color_to_int = {"b": BLACK, "w": WHITE, "e": EMPTY, "BORDER": BORDER}
     return color_to_int[c]
+
+def legal_moves_cmd(self, args: List[str]) -> None:
+        """
+        List legal moves for color args[0] in {'b','w'}
+        """
+        board_color: str = args[0].lower()
+        color: GO_COLOR = color_to_int(board_color)
+        moves: List[GO_POINT] = GoBoardUtil.generate_legal_moves(self.board, color)
+        gtp_moves: List[str] = []
+        for move in moves:
+            coords: Tuple[int, int] = point_to_coord(move, self.board.size)
+            gtp_moves.append(format_point(coords))
+        sorted_moves = " ".join(sorted(gtp_moves))
+        self.respond(sorted_moves)
+
+
+class FlatMonteCarloPlayer(object):
+    def __init__(self, numSimulations):
+        self.numSimulations = numSimulations
+
+    def name(self):
+        return "Flat Monte Carlo Player ({0} sim.)".format(self.numSimulations)
+
+    #player runs N=10 simulations for each legal move
+    
+    def genmove(self, state: GoBoard) -> None: 
+        assert not state.end_of_game() #in board
+        moves = state.get_empty_points() #legal_moves_cmd in gtp_connection
+        numMoves = len(moves)
+        score = [0] * numMoves
+        for i in range(numMoves):
+            move = moves[i]
+            score[i] = self.simulate(state, move)
+        bestIndex = score.index(max(score))
+        best = moves[bestIndex]
+        assert best in state.get_empty_points()
+        return best
+
+    def simulate(self, state: GoBoard, move):
+        stats = [0] * 3
+        state.play_move(move, state.current_player)
+        moveNr = state.moveNumber()
+        for _ in range(self.numSimulations):
+            winner = state.simulate()
+            #print(winner)
+            stats[winner] += 1
+            state.resetToMoveNumber(moveNr)
+        assert sum(stats) == self.numSimulations
+        assert moveNr == state.moveNumber()
+        state.undo_move() #in board 
+        eval = (stats[BLACK] + 0.5 * stats[EMPTY]) / self.numSimulations
+        if state.current_player == WHITE:
+            eval = 1 - eval
+        return eval

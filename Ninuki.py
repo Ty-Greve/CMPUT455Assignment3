@@ -5,13 +5,24 @@
 Go0 random Go player
 Cmput 455 sample code
 Written by Cmput 455 TA and Martin Mueller
+
+--- A3 ---
+V1
+Added FlatMonteCarloPlayer class
+imported form board_base
+change state.toPlay to state.current_player
+FlatMonteCarlo Moved
+---
+V2 (Part2)
+---
 """
+#from inspect import _Object
 from gtp_connection import GtpConnection
 from board_base import DEFAULT_SIZE, GO_POINT, GO_COLOR
 from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
-
+from board_base import EMPTY, BLACK, WHITE
 
 class Go0(GoEngine):
     def __init__(self) -> None:
