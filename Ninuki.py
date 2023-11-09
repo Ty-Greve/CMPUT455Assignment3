@@ -5,55 +5,31 @@
 Go0 random Go player
 Cmput 455 sample code
 Written by Cmput 455 TA and Martin Mueller
+
+--- A3 ---
+V1
+Added FlatMonteCarloPlayer class
+imported form board_base
+change state.toPlay to state.current_player
+FlatMonteCarlo Moved
+Part 1 done
+---
+V2 (Part2)
+finished part 2
+---
+V3 
+Fixed edge case mentioned in assignment 3 update for the class
+Should be Completed
+---
 """
+
 from gtp_connection import GtpConnection
 from board_base import DEFAULT_SIZE, GO_POINT, GO_COLOR
 from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
-from board_base import (
-    BLACK,
-    WHITE,
-    EMPTY,)
-# from game_basics import EMPTY, BLACK, WHITE
+from board_base import EMPTY, BLACK, WHITE
 
-class FlatMonteCarloPlayer():
-    def __init__(self, numSimulations):
-        self.numSimulations = numSimulations
-
-    def name(self):
-        return "Flat Monte Carlo Player ({0} sim.)".format(self.numSimulations)
-
-    #player runs N=10 simulations for each legal move
-    
-    def genmove(self, state: GoBoard) -> None: 
-        assert not state.end_of_game() #in board
-        moves = state.get_empty_points() #legal_moves_cmd in gtp_connection
-        numMoves = len(moves)
-        score = [0] * numMoves
-        for i in range(numMoves):
-            move = moves[i]
-            score[i] = self.simulate(state, move)
-        bestIndex = score.index(max(score))
-        best = moves[bestIndex]
-        assert best in state.get_empty_points()
-        return best
-
-    def simulate(self, state: GoBoard, move):
-        stats = [0] * 3
-        state.play_move(move)
-        moveNr = state.moveNumber()
-        for _ in range(self.numSimulations):
-            winner, _ = state.simulate() #not initialized 
-            stats[winner] += 1
-            state.resetToMoveNumber(moveNr)
-        assert sum(stats) == self.numSimulations
-        assert moveNr == state.moveNumber()
-        state.undoMove() #in board 
-        eval = (stats[BLACK] + 0.5 * stats[EMPTY]) / self.numSimulations
-        if state.toPlay == WHITE:
-            eval = 1 - eval
-        return eval
 
 class Go0(GoEngine):
     def __init__(self) -> None:
@@ -80,7 +56,7 @@ def run() -> None:
     """
     start the gtp connection and wait for commands.
     """
-    board: GoBoard = GoBoard(DEFAULT_SIZE)
+    board: GoBoard = GoBoard(DEFAULT_SIZE) #DEFAULT_SIZE
     con: GtpConnection = GtpConnection(Go0(), board)
     con.start_connection()
 

@@ -7,7 +7,30 @@ Written by Cmput 455 TA and Martin Mueller.
 Parts of this code were originally based on the gtp module 
 in the Deep-Go project by Isaac Henrion and Amos Storkey 
 at the University of Edinburgh.
+
+--- A3 ---
+V1
+Added assignment 3 section
+import FlatMonteCarloPlayer form ninuki
+initialize self.player as FlatMonteCarloPlayer(10)
+add self.policy default to 'random'
+added functions to be called from gtp text prompt:
+-policy_cmd()
+-policy_move_cmd()
+implemented policy_cmd()
+moved FlatMonteCarloPlayer to bottom of gtp_connection
+policy_move_cmd() Done
+change genmove() Done
+FlatMonteCarloPlayer() changed and working for random policy
+Random Policy working
+---
+V2
+Fixed bugs in genmove causing the game to not recognize end of game correctly
+V3 
+Fixed edge case mentioned in assignment 3 update for the class
+Should be Completed
 """
+from email import policy
 import traceback
 import numpy as np
 import re
@@ -28,7 +51,6 @@ from board_base import (
 from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
-from Ninuki import FlatMonteCarloPlayer
 
 class GtpConnection:
     def __init__(self, go_engine: GoEngine, board: GoBoard, debug_mode: bool = False) -> None:
@@ -76,7 +98,7 @@ class GtpConnection:
             # New Added functions for A3
             "policy": self.policy_cmd,
             "policy_moves": self.policy_moves_cmd
-        }
+            }
 
         # argmap is used for argument checking
         # values: (required number of arguments,
@@ -256,7 +278,7 @@ class GtpConnection:
         except:
             self.respond("incorrect policy type: " + str(args[0]) + " type 'random' or 'rule_based'")
 
-    def policy_moves_cmd():
+    def policy_moves_cmd(self, args: List[str]) -> None:
         """
         print out set of moves for the current player given the simulation policy
         and current position.
@@ -265,7 +287,22 @@ class GtpConnection:
         # Movetype = {Win, BlockWin, OpenFour, Capture, Random}
         # Movelist = ab sorted list of moves (same as gogui-rules_legal_moves)
         """
-        pass
+        _ = args
+        if self.policy == "random":
+            moves = self.board.get_empty_points()
+            out = []
+            for i in range(len(moves)):
+                out.append((format_point(point_to_coord(moves[i], self.board.size))).lower())
+            out.sort()
+            self.respond("Random "+ " ".join(str(e) for e in out))
+        else:
+            pol, moves = self.player.policy_move_list(self.board)
+            out = []
+            for i in range(len(moves)):
+                out.append((format_point(point_to_coord(moves[i], self.board.size))).lower())
+            out.sort()
+            self.respond(pol+" "+ " ".join(str(e) for e in out))
+        return None
     """
 
     # Genmove needs to be changed using active simulation policy |X|
@@ -399,26 +436,34 @@ class GtpConnection:
     def genmove_cmd(self, args: List[str]) -> None:
         """ 
         Modify this function for Assignment 2.
+        # Make new changes for A3
         """
         board_color = args[0].lower()
         color = color_to_int(board_color)
         result1 = self.board.detect_five_in_a_row()
         result2 = EMPTY
-        if self.board.get_captures(opponent(color)) >= 10:
-            result2 = opponent(color)
-        if result1 == opponent(color) or result2 == opponent(color):
+        if self.board.get_captures(BLACK) >= 10:
+            result2 = BLACK
+        elif self.board.get_captures(WHITE) >= 10:
+            result2 = WHITE
+
+        if (result1 == opponent(color)) or (result2 == opponent(color)):
             self.respond("resign")
             return
-        legal_moves = self.board.get_empty_points()
-        if legal_moves.size == 0:
+        elif (result1 == color) or (result2 == color) or self.board.get_empty_points().size == 0:
             self.respond("pass")
             return
-        rng = np.random.default_rng()
-        choice = rng.choice(len(legal_moves))
-        move = legal_moves[choice]
+
+        # Choose move based on policy
+        if self.policy == "random":
+            move = self.player.genmoveRandom(self.board)
+        elif self.policy == "rule_based":
+            move = self.player.genmovePolicy(self.board)
+
         move_coord = point_to_coord(move, self.board.size)
         move_as_string = format_point(move_coord)
         self.play_cmd([board_color, move_as_string, 'print_move'])
+        return
     
     def timelimit_cmd(self, args: List[str]) -> None:
         """ Implement this function for Assignment 2 """
@@ -507,3 +552,114 @@ def legal_moves_cmd(self, args: List[str]) -> None:
             gtp_moves.append(format_point(coords))
         sorted_moves = " ".join(sorted(gtp_moves))
         self.respond(sorted_moves)
+
+
+class FlatMonteCarloPlayer(object):
+    def __init__(self, numSimulations):
+        self.numSimulations = numSimulations
+
+    def name(self):
+        return "Flat Monte Carlo Player ({0} sim.)".format(self.numSimulations)
+
+    #player runs N=10 simulations for each legal move
+    '''
+    def genmove(self, state: GoBoard) -> None: 
+        assert not state.end_of_game() #in board
+        moves = state.get_empty_points() #legal_moves_cmd in gtp_connection
+        numMoves = len(moves)
+        score = [0] * numMoves
+        for i in range(numMoves):
+            move = moves[i]
+            score[i] = self.simulate(state, move)
+        bestIndex = score.index(max(score))
+        best = moves[bestIndex]
+        assert best in state.get_empty_points()
+        return best
+    '''
+    def genmoveRandom(self, state: GoBoard) -> None:
+        assert not state.end_of_game() #in board
+        moves = state.get_empty_points() #legal_moves_cmd in gtp_connection
+        numMoves = len(moves)
+        score = [0] * numMoves
+        for i in range(numMoves):
+            move = moves[i]
+            score[i] = self.simulate(state, move)
+        bestIndex = score.index(max(score))
+        best = moves[bestIndex]
+        assert best in state.get_empty_points()
+        return best
+
+    def genmovePolicy(self, state: GoBoard) -> None:
+        assert not state.end_of_game() #in board
+        _, moves = self.policy_move_list(state)
+        move = np.random.choice(moves, 1)
+        return int(move)
+
+    def simulate(self, state: GoBoard, move):
+        stats = [0] * 3
+        state.play_move(move, state.current_player)
+        moveNr = state.moveNumber()
+        for _ in range(self.numSimulations):
+            winner = state.simulate()
+            #print(winner)
+            stats[winner] += 1
+            state.resetToMoveNumber(moveNr)
+        assert sum(stats) == self.numSimulations
+        assert moveNr == state.moveNumber()
+        state.undo_move() #in board 
+        eval = (stats[BLACK] + 0.5 * stats[EMPTY]) / self.numSimulations
+        if state.current_player == WHITE:
+            eval = 1 - eval
+        return eval
+
+    def policy_move_list(self, state: GoBoard):
+
+        moves = state.get_empty_points() #legal_moves_cmd in gtp_connection
+        policymoves = [[],[],[],[]] # Win, BlockWin, OpenFour, capture, Random(just select from moves)
+
+        binPlayer = state.current_player # The player as a goPoint
+        player = ["", "black", "white"][binPlayer] # The player as a string
+        opp = ["", "black", "white"][opponent(binPlayer)] # the opponent as a string
+
+        prevCaptures = state.get_captures(binPlayer)
+
+        for move in moves: # Create policy list
+
+            state.play_move(move, binPlayer)
+            result = state.get_final_result()
+            # Win list
+            if result == player: 
+                policymoves[0].append(move)
+            # OpenFour list
+            if state.size > 5 and state.detectOpenFour():
+                policymoves[2].append(move)
+            # Captures list
+            if state.get_captures(binPlayer) > prevCaptures: # If captures after the move is greater
+                policymoves[3].append(move)
+            state.undo_move()
+
+            # BlockWin list
+            state.play_move(move, opponent(binPlayer))
+            result = state.get_final_result()
+            if result == opp: 
+                policymoves[1].append(move)
+            state.undo_move()
+
+        if policymoves[1] != [] and policymoves[3] != []: # if there are captures and blocked win
+            movenmbr = state.moveNumber()
+            newblocks = []
+            for oppwin in policymoves[1]: # For moves in the blockwin list
+                for cap in policymoves[3]: # For each capture move
+                    state.play_move(cap, binPlayer) # play the capturing move
+                    state.play_move(oppwin, opponent(binPlayer)) # Play the move that would make the opponent win
+                    if state.get_final_result() != opp: # if the opponent no longer wins from the move that would otherwise win
+                        newblocks.append(cap) # This capture blocks the winning move, so add it to blockmove
+                    state.resetToMoveNumber(movenmbr) #undo both moves played
+            for i in newblocks:
+                policymoves[1].append(i)
+
+        for i in range(4): #Choose move from policy
+            if policymoves[i] != []:
+                return ["Win", "BlockWin", "OpenFour", "Capture"][i], policymoves[i]
+
+        return "Random", moves # If no moves in policy return all moves for random policy
