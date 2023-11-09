@@ -1,3 +1,4 @@
+
 #!/usr/bin/python3
 # Set the path to your python3 above
 
@@ -5,6 +6,16 @@
 Go0 random Go player
 Cmput 455 sample code
 Written by Cmput 455 TA and Martin Mueller
+
+--- A3 ---
+V1
+Added FlatMonteCarloPlayer class
+imported form board_base
+change state.toPlay to state.current_player
+FlatMonteCarlo Moved
+---
+V2 (Part2)
+---
 """
 from gtp_connection import GtpConnection
 from board_base import DEFAULT_SIZE, GO_POINT, GO_COLOR
@@ -83,3 +94,4 @@ def run() -> None:
 
 if __name__ == "__main__":
     run()
+

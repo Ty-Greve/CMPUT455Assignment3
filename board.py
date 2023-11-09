@@ -1,3 +1,4 @@
+
 """
 board.py
 Cmput 455 sample code
@@ -9,11 +10,25 @@ Implements a basic Go board with functions to:
 - play a move
 
 The board uses a 1-dimensional representation with padding
+--- A3 ---
+v1
+implemented change stack
+added undo
+reset() now emptys the change stack
+redone end_of_game()
+playmove() changed for change stack implementation
+redone detect_five_in_row() (removed calculate_row_columns_diags)
+get_final_result() function added
+simulate() Done
+resetToMoveNumber(moveNr) Done
+moveNumber() Done
+
+random policy should be working
+---
 """
 
 import numpy as np
 from typing import List, Tuple
-
 
 from board_base import (
     board_array_size,
@@ -50,9 +65,93 @@ class GoBoard(object):
         """
         assert 2 <= size <= MAXSIZE
         self.reset(size)
-        self.calculate_rows_cols_diags()
+        #self.calculate_rows_cols_diags() #removed for new implementation
         self.black_captures = 0
         self.white_captures = 0
+
+        ### Student implemented ###                                                         
+        # if there is no capture from the move then the move is just stored as a list with one point
+        # if there is multiple captures, all captured pieces are listed after the move that captured them
+        #[[color, point, cap,...], [color, point, cap,...], ...]
+        self.change_stack = [] # Stack containing data as [[Color of current player, GoPoint for first move, GoPoint for capture, GoPoint for capture,...], ...]
+
+    ########################################################
+    ###        Implement Undo Function                   ###
+    ########################################################
+    def undo_move(self) -> None:
+        # use change stack implementation with changes for captures
+        #### !!!!!!! MODIFY PLAY MOVE FOR TO PUSH MOVES ONTO STACK
+        # adjust the last and second last move variables?
+
+        last_moves = self.change_stack.pop()
+
+        # Handle the piece undone
+        color, point = last_moves[0:2] # get first two values from movelist
+        self.board[point] = EMPTY      # Remove the last piece played
+
+        # Handle undone Captures
+        Ocolor = opponent(color) # Get opponent color
+        for capture in last_moves[2:]: # for each capture in the movelist
+            self.board[capture] = Ocolor
+            if color == BLACK:
+                self.black_captures -= 1
+            elif color == WHITE:
+                self.white_captures -= 1
+
+        self.current_player = opponent(self.current_player) # Change the current player back
+
+        return None
+
+    def simulate(self) -> int:
+        # run flat monte carlo simulation from current position and return winner and unknown value (unknown value returned in FlatMonteCarloPlayer)
+        # play random until win or draw and return winner 
+        # undo will be called in resetToMoveNumber() after this is called in genmove in ninuki.py. so no issues hopefully
+        winner = "unknown"
+
+        while winner == "unknown":
+            legalMoves = self.get_empty_points()
+            move = int(np.random.choice(legalMoves, 1)) #get one random legal move
+            self.play_move(move, self.current_player)
+            winner = self.get_final_result() # Check for winner
+        
+        if winner == "black":
+            winner = 1
+        if winner == "white":
+            winner = 2
+        if winner == "draw":
+            winner = 0
+
+        return winner
+
+    def resetToMoveNumber(self, moveNr) -> None:
+        # reset board to move number given. Use undo for this
+        while len(self.change_stack)-1 > moveNr:
+            self.undo_move()
+        return None
+
+    def moveNumber(self) -> int:
+        # return the index in the change stack for the current move.
+        # Essentially return length of change stack-1 for 0 indexing
+        # moveNumber should not be called without at least one move being played, so no -1 risk
+        return len(self.change_stack)-1
+
+    def get_final_result(self) -> str:
+        """ We already implemented this function for Assignment 2 """
+        result1 = self.detect_five_in_a_row()
+        result2 = EMPTY
+        if self.get_captures(BLACK) >= 10:
+            result2 = BLACK
+        elif self.get_captures(WHITE) >= 10:
+            result2 = WHITE
+
+        if (result1 == BLACK) or (result2 == BLACK):
+            return "black"
+        elif (result1 == WHITE) or (result2 == WHITE):
+            return "white"
+        elif self.get_empty_points().size == 0:
+            return "draw"
+        else:
+            return "unknown"
 
     def add_two_captures(self, color: GO_COLOR) -> None:
         if color == BLACK:
@@ -139,9 +238,11 @@ class GoBoard(object):
         self.maxpoint: int = board_array_size(size)
         self.board: np.ndarray[GO_POINT] = np.full(self.maxpoint, BORDER, dtype=GO_POINT)
         self._initialize_empty_points(self.board)
-        self.calculate_rows_cols_diags()
+        #self.calculate_rows_cols_diags()   #removed for new implementation
         self.black_captures = 0
         self.white_captures = 0
+
+        self.change_stack = []
 
     def copy(self) -> 'GoBoard':
         b = GoBoard(self.size)
@@ -195,8 +296,19 @@ class GoBoard(object):
         return can_play_move
 
     def end_of_game(self) -> bool:
+        if self.black_captures>=10 or self.white_captures>=10:
+            return True
+        elif self.detect_five_in_a_row() != EMPTY:
+            return True
+        elif len(self.get_empty_points()) == 0:
+            return True
+        else:
+            return False
+    '''
+    def end_of_game(self) -> bool:
         return self.last_move == PASS \
            and self.last2_move == PASS
+    '''
            
     def get_empty_points(self) -> np.ndarray:
         """
@@ -310,9 +422,14 @@ class GoBoard(object):
         Tries to play a move of color on the point.
         Returns whether or not the point was empty.
         """
+        # Modified to allow for undo function
+
         if self.board[point] != EMPTY:
             return False
         self.board[point] = color
+        ####
+        changenode = [color, point] # Add color and point to the list for addition to the change stack
+        ####
         self.current_player = opponent(color)
         self.last2_move = self.last_move
         self.last_move = point
@@ -322,10 +439,17 @@ class GoBoard(object):
             if self.board[point+offset] == O and self.board[point+(offset*2)] == O and self.board[point+(offset*3)] == color:
                 self.board[point+offset] = EMPTY
                 self.board[point+(offset*2)] = EMPTY
+                ####
+                changenode.append(point+offset)         # Add capture 1
+                changenode.append(point+(offset*2))     # Add capture 2 to changelist for undo
+                ####
                 if color == BLACK:
                     self.black_captures += 2
                 else:
                     self.white_captures += 2
+        ####
+        self.change_stack.append(changenode) # Add all changes from the move played to the change stack
+        ####
         return True
     
     def neighbors_of_color(self, point: GO_POINT, color: GO_COLOR) -> List:
@@ -364,6 +488,40 @@ class GoBoard(object):
         Returns BLACK or WHITE if any five in a row is detected for the color
         EMPTY otherwise.
         """
+        #exit if not enough pieces played
+        if len(self.change_stack) < 5:
+            return EMPTY
+
+        lm = self.change_stack[-1][1]
+        
+        color = self.board[lm]
+
+        #[[up, down],[left,right],[NE,SW],[NW,SW]]
+        n = self.size
+        direct = [[n+1, -(n+1)],[-1,1],[n+2,-(n+2)],[n,-n]]
+
+        for d in direct:
+            d0 = d[0]
+            d1 = d[1]
+            i = 1
+            while self.board[lm+(d0*i)] == color:
+                #print(self.board[lm+(d0*i)])
+                i+=1
+            j = 1
+            while self.board[lm+(d1*j)] == color:
+                
+                j+=1
+            if i+j-1 >=5:
+                return color
+
+        return EMPTY
+
+    '''
+    def detect_five_in_a_row(self) -> GO_COLOR:
+        """
+        Returns BLACK or WHITE if any five in a row is detected for the color
+        EMPTY otherwise.
+        """
         for r in self.rows:
             result = self.has_five_in_list(r)
             if result != EMPTY:
@@ -377,7 +535,7 @@ class GoBoard(object):
             if result != EMPTY:
                 return result
         return EMPTY
-
+    
     def has_five_in_list(self, list) -> GO_COLOR:
         """
         Returns BLACK or WHITE if any five in a rows exist in the list.
@@ -394,39 +552,4 @@ class GoBoard(object):
             if counter == 5 and prev != EMPTY:
                 return prev
         return EMPTY
-
-    def undo_move(self) -> None:
-        # use change stack implementation with changes for captures
-        #### !!!!!!! MODIFY PLAY MOVE FOR TO PUSH MOVES ONTO STACK
-        # adjust the last and second last move variables?
-
-        last_moves = self.change_stack.pop()
-
-        # Handle the piece undone
-        color, point = last_moves[0:2] # get first two values from movelist
-        self.board[point] = EMPTY      # Remove the last piece played
-
-        # Handle undone Captures
-        Ocolor = opponent(color) # Get opponent color
-        for capture in last_moves[2:]: # for each capture in the movelist
-            self.board[capture] = Ocolor
-            if color == BLACK:
-                self.black_captures -= 1
-            elif color == WHITE:
-                self.white_captures -= 1
-
-        self.current_player = opponent(self.current_player) # Change the current player back
-
-        return None
-
-    def end_of_game(self) -> bool:
-        if self.black_captures>=10 or self.white_captures>=10:
-            return True
-        elif self.detect_five_in_a_row() != EMPTY:
-            return True
-        elif len(self.get_empty_points()) == 0:
-            return True
-        else:
-            return False
-    
-    
+    '''
