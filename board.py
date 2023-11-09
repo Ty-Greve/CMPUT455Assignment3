@@ -1,4 +1,3 @@
-
 """
 board.py
 Cmput 455 sample code
@@ -24,6 +23,13 @@ resetToMoveNumber(moveNr) Done
 moveNumber() Done
 
 random policy should be working
+---
+V2 
+Part 2 finished
+---
+V3 
+Fixed edge case mentioned in assignment 3 update for the class
+Should be Completed
 ---
 """
 
@@ -65,7 +71,7 @@ class GoBoard(object):
         """
         assert 2 <= size <= MAXSIZE
         self.reset(size)
-        #self.calculate_rows_cols_diags() #removed for new implementation
+        self.calculate_rows_cols_diags() #removed for new implementation
         self.black_captures = 0
         self.white_captures = 0
 
@@ -238,7 +244,7 @@ class GoBoard(object):
         self.maxpoint: int = board_array_size(size)
         self.board: np.ndarray[GO_POINT] = np.full(self.maxpoint, BORDER, dtype=GO_POINT)
         self._initialize_empty_points(self.board)
-        #self.calculate_rows_cols_diags()   #removed for new implementation
+        self.calculate_rows_cols_diags()   
         self.black_captures = 0
         self.white_captures = 0
 
@@ -482,7 +488,7 @@ class GoBoard(object):
         if self.last2_move != NO_POINT and self.last2_move != PASS:
             board_moves.append(self.last2_move)
         return board_moves
-
+    '''
     def detect_five_in_a_row(self) -> GO_COLOR:
         """
         Returns BLACK or WHITE if any five in a row is detected for the color
@@ -552,4 +558,37 @@ class GoBoard(object):
             if counter == 5 and prev != EMPTY:
                 return prev
         return EMPTY
-    '''
+
+    def detectOpenFour(self) -> bool:
+        #fours = self.generateOpenFour(self.current_player)
+
+        for r in self.rows:
+            if self.isOpenFour(r):
+                return True
+        for c in self.cols:
+            if self.isOpenFour(c):
+                return True
+        for d in self.diags:
+            if self.isOpenFour(d):
+                return True
+        return False
+
+    def isOpenFour(self, a: list):
+        #Lol
+        p = opponent(self.current_player)
+        row = self.list_to_fours(a)
+        for i in range(len(row)-5):
+            if row[i]==0:
+                if row[i+1]==p:
+                    if row[i+2]==p:
+                        if row[i+3]==p:
+                            if row[i+4]==p:
+                                if row[i+5]==0:
+                                    return True
+        return False
+
+    def list_to_fours(self, a: list):
+        out = []
+        for i in a:
+            out.append(self.get_color(i))
+        return out
