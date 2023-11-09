@@ -22,13 +22,14 @@ Fixed edge case mentioned in assignment 3 update for the class
 Should be Completed
 ---
 """
-#from inspect import _Object
+
 from gtp_connection import GtpConnection
 from board_base import DEFAULT_SIZE, GO_POINT, GO_COLOR
 from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
 from board_base import EMPTY, BLACK, WHITE
+
 
 class Go0(GoEngine):
     def __init__(self) -> None:

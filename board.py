@@ -592,8 +592,3 @@ class GoBoard(object):
         for i in a:
             out.append(self.get_color(i))
         return out
-
-
-
-
-    
